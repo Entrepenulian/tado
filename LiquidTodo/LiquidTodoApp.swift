@@ -9,16 +9,7 @@ struct LiquidTodoApp: App {
             MenuView()
                 .environmentObject(store)
         } label: {
-            HStack(alignment: .center, spacing: 4) {
-                Image(systemName: "checklist")
-                if store.remainingCount > 0 {
-                    Text(store.remainingCount, format: .number)
-                        .monospacedDigit()
-                        .alignmentGuide(VerticalAlignment.center) { d in
-                            d[VerticalAlignment.center] - 5
-                        }
-                }
-            }
+            Image(nsImage: MenuBarIcon.render(count: store.remainingCount, nudge: 5))
         }
         .menuBarExtraStyle(.window)
     }
