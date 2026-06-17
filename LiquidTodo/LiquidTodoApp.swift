@@ -9,7 +9,7 @@ struct LiquidTodoApp: App {
             MenuView()
                 .environmentObject(store)
         } label: {
-            Image(nsImage: MenuBarIcon.render(count: store.remainingCount, nudge: 5))
+            Image(nsImage: MenuBarIcon.render(count: store.remainingCount, nudge: 0))
         }
         .menuBarExtraStyle(.window)
     }
