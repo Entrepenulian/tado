@@ -32,7 +32,8 @@ struct TodoRow: View {
                     .font(.system(size: 13))
                     .strikethrough(checked, color: .secondary)
                     .foregroundStyle(checked ? .secondary : .primary)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 if let subtitle, !subtitle.isEmpty {
                     Text(subtitle)
                         .font(.system(size: 10.5))
