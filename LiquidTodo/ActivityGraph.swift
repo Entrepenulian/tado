@@ -33,24 +33,72 @@ struct ActivityGraph: View {
         let cols = gridColumns()
         let peak = peakCount(in: cols)
 
-        HStack(spacing: gap) {
-            ForEach(0..<columns, id: \.self) { c in
-                VStack(spacing: gap) {
-                    ForEach(0..<7, id: \.self) { r in
-                        squircle(day: cols[c][r], col: c, row: r, peak: peak)
+        VStack(alignment: .leading, spacing: 4) {
+            monthHeader(labels: monthLabels(for: cols))
+
+            HStack(spacing: gap) {
+                ForEach(0..<columns, id: \.self) { c in
+                    VStack(spacing: gap) {
+                        ForEach(0..<7, id: \.self) { r in
+                            squircle(day: cols[c][r], col: c, row: r, peak: peak)
+                        }
                     }
                 }
             }
-        }
-        .onContinuousHover { phase in
-            switch phase {
-            case .active(let location): hover = location
-            case .ended: hover = nil
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location): hover = location
+                case .ended: hover = nil
+                }
             }
         }
         .padding(12)
         .liquidGlass(cornerRadius: 16)
     }
+
+    // MARK: - Month labels
+
+    private func monthHeader(labels: [String?]) -> some View {
+        ZStack(alignment: .topLeading) {
+            Color.clear.frame(width: gridWidth, height: 11)
+            ForEach(Array(labels.enumerated()), id: \.offset) { c, label in
+                if let label {
+                    Text(label)
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                        .offset(x: CGFloat(c) * (cell + gap))
+                }
+            }
+        }
+    }
+
+    /// One label per column where the month changes (min 2 columns apart so they
+    /// never overlap). Derived from each week's first day, so it's accurate.
+    private func monthLabels(for cols: [[Date?]]) -> [String?] {
+        var labels = [String?](repeating: nil, count: cols.count)
+        var lastMonth: Int?
+        var lastEmit = -10
+        for (c, column) in cols.enumerated() {
+            guard let day = column.first.flatMap({ $0 }) else { continue }
+            let month = cal.component(.month, from: day)
+            if month != lastMonth {
+                lastMonth = month
+                if c - lastEmit >= 2 {
+                    labels[c] = Self.monthFormatter.string(from: day)
+                    lastEmit = c
+                }
+            }
+        }
+        return labels
+    }
+
+    private static let monthFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "MMM"
+        return f
+    }()
 
     private func squircle(day: Date?, col: Int, row: Int, peak: Int) -> some View {
         let lvl: Int
