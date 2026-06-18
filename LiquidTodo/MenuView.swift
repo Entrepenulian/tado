@@ -26,19 +26,7 @@ struct MenuView: View {
     // MARK: - Activity
 
     private var activitySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "square.grid.3x3.fill")
-                    .font(.system(size: 10, weight: .bold))
-                Text("Activity")
-                    .font(.system(size: 11, weight: .semibold))
-                Spacer()
-            }
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 2)
-
-            ActivityGraph(completions: store.completions, accent: accent)
-        }
+        ActivityGraph(completions: store.completions, accent: accent)
     }
 
     // MARK: - Header
