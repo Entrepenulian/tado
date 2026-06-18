@@ -47,6 +47,12 @@ struct MenuView: View {
             footer
             activitySection
         }
+        .overlay(alignment: .bottom) {
+            BottomAnchorView(controller: dayPanel)
+                .frame(maxWidth: .infinity)
+                .frame(height: 0)
+                .allowsHitTesting(false)
+        }
     }
 
     // MARK: - Activity

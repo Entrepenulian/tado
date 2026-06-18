@@ -154,12 +154,14 @@ final class TodoStore: ObservableObject {
     }
 
     private func loadCompletions() {
-        guard let data = UserDefaults.standard.data(forKey: completionsKey) else { return }
-        if let decoded = try? JSONDecoder().decode([String: [String]].self, from: data) {
-            completions = decoded
-        } else if let old = try? JSONDecoder().decode([String: Int].self, from: data) {
-            // Migrate the older count-only format.
-            completions = old.mapValues { Array(repeating: "Completed task", count: $0) }
+        guard
+            let data = UserDefaults.standard.data(forKey: completionsKey),
+            let decoded = try? JSONDecoder().decode([String: [String]].self, from: data)
+        else { return }
+        // Drop placeholder titles left over from the old count-only format.
+        completions = decoded.compactMapValues { titles in
+            let cleaned = titles.filter { $0 != "Completed task" }
+            return cleaned.isEmpty ? nil : cleaned
         }
     }
 }
