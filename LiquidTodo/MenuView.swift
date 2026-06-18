@@ -25,6 +25,7 @@ struct MenuView: View {
         }
         .padding(14)
         .tint(accent)
+        .background(WindowTopAnchor())
         .onAppear { store.refreshRecurring() }
         .animation(.smooth(duration: 0.28), value: selectedDay)
     }
