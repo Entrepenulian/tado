@@ -20,8 +20,8 @@ struct ActivityGraph: View {
     private let cal = Calendar.current
 
     // Hover falloff tuning.
-    private let liftRadius: CGFloat = 50
-    private let maxLift: CGFloat = 0.7
+    private let liftRadius: CGFloat = 40
+    private let maxLift: CGFloat = 0.28
 
     @State private var hover: CGPoint?
 
@@ -65,7 +65,7 @@ struct ActivityGraph: View {
             .frame(width: cell, height: cell)
             .scaleEffect(scale)
             .zIndex(Double(scale))
-            .animation(.spring(response: 0.3, dampingFraction: 0.62), value: hover)
+            .animation(.spring(response: 0.32, dampingFraction: 0.74), value: hover)
     }
 
     /// Scale for a cell based on its distance from the cursor.
