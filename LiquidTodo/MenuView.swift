@@ -20,6 +20,7 @@ struct MenuView: View {
             .background(MainWindowAccessor { window in
                 dayPanel.attach(window, onAutoDismiss: { selectedDay = nil })
             })
+            .onPreferenceChange(CardHeightKey.self) { dayPanel.setMainCardHeight($0) }
             .onChange(of: selectedDay) { _, day in
                 if let day {
                     dayPanel.present(
@@ -47,12 +48,11 @@ struct MenuView: View {
             footer
             activitySection
         }
-        .overlay(alignment: .bottom) {
-            BottomAnchorView(controller: dayPanel)
-                .frame(maxWidth: .infinity)
-                .frame(height: 0)
-                .allowsHitTesting(false)
-        }
+        .background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: CardHeightKey.self, value: proxy.size.height)
+            }
+        )
     }
 
     // MARK: - Activity
@@ -253,5 +253,12 @@ struct MenuView: View {
             }
             .padding(.horizontal, 2)
         }
+    }
+}
+
+private struct CardHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }

@@ -8,14 +8,14 @@ import AppKit
 final class DayPanelController: ObservableObject {
     private var panel: NSPanel?
     private weak var mainWindow: NSWindow?
-    private weak var anchorView: NSView?
+    private var mainCardHeight: CGFloat = 0
     private var onAutoDismiss: (() -> Void)?
     private var observers: [NSObjectProtocol] = []
 
-    /// A zero-height view pinned to the bottom edge of the main card, used to
-    /// measure its exact bottom in screen coordinates.
-    func setAnchorView(_ view: NSView) {
-        anchorView = view
+    /// The measured height of the main card stack (excludes window padding).
+    func setMainCardHeight(_ height: CGFloat) {
+        guard height > 0, height != mainCardHeight else { return }
+        mainCardHeight = height
         reposition()
     }
 
@@ -78,25 +78,20 @@ final class DayPanelController: ObservableObject {
 
     private func reposition() {
         guard let panel, let mainWindow else { return }
+        let win = mainWindow.frame
         let size = panel.frame.size
         let gap: CGFloat = 8
-        let visible = (mainWindow.screen ?? NSScreen.main)?.visibleFrame ?? mainWindow.frame
+        let cardWidth: CGFloat = 292 // main column width (320 − 2×14 padding)
+        let visible = (mainWindow.screen ?? NSScreen.main)?.visibleFrame ?? win
 
-        // Measure the main card's true bottom/edges from the anchor view.
-        let bottomY: CGFloat
-        let cardLeftX: CGFloat
-        let cardRightX: CGFloat
-        if let anchor = anchorView, let win = anchor.window {
-            let rect = win.convertToScreen(anchor.convert(anchor.bounds, to: nil))
-            bottomY = rect.minY
-            cardLeftX = rect.minX
-            cardRightX = rect.maxX
-        } else {
-            let main = mainWindow.frame
-            bottomY = main.minY + 14
-            cardLeftX = main.minX + 14
-            cardRightX = main.maxX - 14
-        }
+        // The main card sits symmetrically inset inside the window, so its edges
+        // are half the leftover space from each window edge.
+        let vInset = mainCardHeight > 0 ? (win.height - mainCardHeight) / 2 : 14
+        let hInset = (win.width - cardWidth) / 2
+
+        let bottomY = win.minY + vInset
+        let cardRightX = win.maxX - hInset
+        let cardLeftX = win.minX + hInset
 
         var x = cardRightX + gap                 // right by default
         if x + size.width > visible.maxX {       // flip left when there's no room
@@ -108,22 +103,6 @@ final class DayPanelController: ObservableObject {
     private func teardownObservers() {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         observers.removeAll()
-    }
-}
-
-/// A zero-height marker placed at the bottom of the main card so the controller
-/// can read its exact screen position.
-struct BottomAnchorView: NSViewRepresentable {
-    let controller: DayPanelController
-
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView(frame: .zero)
-        DispatchQueue.main.async { controller.setAnchorView(view) }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { controller.setAnchorView(nsView) }
     }
 }
 
