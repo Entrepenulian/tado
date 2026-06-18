@@ -7,8 +7,9 @@ final class TodoStore: ObservableObject {
         didSet { save() }
     }
 
-    /// Per-day completion tally for the activity graph. Survives clearing/deleting.
-    @Published private(set) var completions: [String: Int] = [:] {
+    /// Per-day list of completed task titles for the activity graph and day detail.
+    /// Survives clearing/deleting. Day count == the array's length.
+    @Published private(set) var completions: [String: [String]] = [:] {
         didSet { saveCompletions() }
     }
 
@@ -104,12 +105,26 @@ final class TodoStore: ObservableObject {
         let nowDone = !items[i].isDone
         items[i].isDone = nowDone
         items[i].completedAt = nowDone ? Date() : nil
-        recordCompletion(delta: nowDone ? 1 : -1)
+        if nowDone {
+            recordCompletion(adding: items[i].title)
+        } else {
+            recordCompletion(removing: items[i].title)
+        }
     }
 
-    private func recordCompletion(delta: Int) {
+    private func recordCompletion(adding title: String) {
+        completions[Self.dayKey(Date()), default: []].append(title)
+    }
+
+    private func recordCompletion(removing title: String) {
         let k = Self.dayKey(Date())
-        completions[k] = max(0, (completions[k] ?? 0) + delta)
+        guard var list = completions[k], !list.isEmpty else { return }
+        if let idx = list.lastIndex(of: title) {
+            list.remove(at: idx)
+        } else {
+            list.removeLast()
+        }
+        completions[k] = list.isEmpty ? nil : list
     }
 
     func delete(_ item: TodoItem) {
@@ -139,10 +154,12 @@ final class TodoStore: ObservableObject {
     }
 
     private func loadCompletions() {
-        guard
-            let data = UserDefaults.standard.data(forKey: completionsKey),
-            let decoded = try? JSONDecoder().decode([String: Int].self, from: data)
-        else { return }
-        completions = decoded
+        guard let data = UserDefaults.standard.data(forKey: completionsKey) else { return }
+        if let decoded = try? JSONDecoder().decode([String: [String]].self, from: data) {
+            completions = decoded
+        } else if let old = try? JSONDecoder().decode([String: Int].self, from: data) {
+            // Migrate the older count-only format.
+            completions = old.mapValues { Array(repeating: "Completed task", count: $0) }
+        }
     }
 }
