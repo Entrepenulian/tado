@@ -19,9 +19,9 @@ struct ActivityGraph: View {
     private let gridWidth: CGFloat = 268
     private let cal = Calendar.current
 
-    // Hover falloff tuning.
-    private let liftRadius: CGFloat = 40
-    private let maxLift: CGFloat = 0.28
+    // Hover repel tuning.
+    private let pushRadius: CGFloat = 52
+    private let maxPush: CGFloat = 7
 
     @State private var hover: CGPoint?
 
@@ -59,18 +59,17 @@ struct ActivityGraph: View {
         } else {
             lvl = -1 // future day
         }
-        let scale = lift(col: col, row: row)
+        let push = displacement(col: col, row: row)
         return RoundedRectangle(cornerRadius: cell * 0.28, style: .continuous)
             .fill(color(for: lvl))
             .frame(width: cell, height: cell)
-            .scaleEffect(scale)
-            .zIndex(Double(scale))
+            .offset(x: push.width, y: push.height)
             .animation(.spring(response: 0.32, dampingFraction: 0.74), value: hover)
     }
 
-    /// Scale for a cell based on its distance from the cursor.
-    private func lift(col: Int, row: Int) -> CGFloat {
-        guard let hover else { return 1 }
+    /// Push a cell away from the cursor — strongest nearby, fading to zero at `pushRadius`.
+    private func displacement(col: Int, row: Int) -> CGSize {
+        guard let hover else { return .zero }
         let center = CGPoint(
             x: CGFloat(col) * (cell + gap) + cell / 2,
             y: CGFloat(row) * (cell + gap) + cell / 2
@@ -78,8 +77,14 @@ struct ActivityGraph: View {
         let dx = center.x - hover.x
         let dy = center.y - hover.y
         let distance = sqrt(dx * dx + dy * dy)
-        let t = max(0, 1 - distance / liftRadius)
-        return 1 + maxLift * t * t // ease the falloff
+        guard distance < pushRadius else { return .zero }
+
+        let direction = distance > 0.001
+            ? CGSize(width: dx / distance, height: dy / distance)
+            : .zero
+        let t = 1 - distance / pushRadius
+        let magnitude = maxPush * t * t // ease the falloff
+        return CGSize(width: direction.width * magnitude, height: direction.height * magnitude)
     }
 
     // MARK: - Dates
