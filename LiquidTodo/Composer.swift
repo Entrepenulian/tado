@@ -73,7 +73,9 @@ struct Composer: View {
                     .toggleStyle(.checkbox)
             }
 
-            if repeats { repeatOptions }
+            if repeats {
+                RepeatOptions(frequency: $frequency, startDate: $startDate, resetTime: $resetTime)
+            }
 
             HStack(spacing: 8) {
                 Button(action: cancel) {
@@ -106,42 +108,6 @@ struct Composer: View {
             }
         }
         .padding(12)
-    }
-
-    private var repeatOptions: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Picker("", selection: $frequency) {
-                ForEach(Recurrence.Frequency.allCases) { freq in
-                    Text(freq.label).tag(freq)
-                }
-            }
-            .labelsHidden()
-            .pickerStyle(.segmented)
-
-            HStack {
-                Text("Starts")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                DatePicker("", selection: $startDate, displayedComponents: .date)
-                    .labelsHidden()
-            }
-
-            HStack {
-                Text("Reset time")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                DatePicker("", selection: $resetTime, displayedComponents: .hourAndMinute)
-                    .labelsHidden()
-            }
-        }
-        .padding(10)
-        .background(
-            .primary.opacity(0.04),
-            in: RoundedRectangle(cornerRadius: 10, style: .continuous)
-        )
-        .transition(.opacity.combined(with: .move(edge: .top)))
     }
 
     // MARK: - Actions
