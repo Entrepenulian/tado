@@ -63,10 +63,39 @@ final class DayPanelController: ObservableObject {
             mainWindow.addChildWindow(panel, ordered: .above)
         }
 
-        panel.contentView = hosting
+        // Back the card with the same vibrant material the main window uses,
+        // so the card's glass layers over an identical base (matching look).
+        let backing = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+        if let source = Self.findVisualEffect(in: mainWindow.contentView) {
+            backing.material = source.material
+            backing.blendingMode = source.blendingMode
+        } else {
+            backing.material = .menu
+            backing.blendingMode = .behindWindow
+        }
+        backing.state = .active
+        backing.wantsLayer = true
+        backing.layer?.cornerRadius = 18
+        backing.layer?.masksToBounds = true
+        backing.autoresizingMask = [.width, .height]
+
+        hosting.frame = backing.bounds
+        hosting.autoresizingMask = [.width, .height]
+        backing.addSubview(hosting)
+
+        panel.contentView = backing
         panel.setContentSize(size)
         reposition()
         panel.orderFront(nil)
+    }
+
+    private static func findVisualEffect(in view: NSView?) -> NSVisualEffectView? {
+        guard let view else { return nil }
+        if let effect = view as? NSVisualEffectView { return effect }
+        for sub in view.subviews {
+            if let found = findVisualEffect(in: sub) { return found }
+        }
+        return nil
     }
 
     func dismiss() {
