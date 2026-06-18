@@ -20,8 +20,8 @@ struct ActivityGraph: View {
     private let cal = Calendar.current
 
     // Hover repel tuning.
-    private let pushRadius: CGFloat = 46
-    private let maxPush: CGFloat = 3
+    private let pushRadius: CGFloat = 50
+    private let maxPush: CGFloat = 4.5
 
     @State private var hover: CGPoint?
 
