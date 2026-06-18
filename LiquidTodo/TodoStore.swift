@@ -8,18 +8,29 @@ final class TodoStore: ObservableObject {
     }
 
     private let key = "liquidtodo.items.v1"
+    private var resetTimer: Timer?
 
-    init() { load() }
+    init() {
+        load()
+        refreshRecurring()
+        resetTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.refreshRecurring() }
+        }
+    }
 
-    // Active items follow the array order (user-rearrangeable via drag).
-    // Completed items show most-recently-finished first.
+    // One-time tasks. Active items follow array order (drag-rearrangeable).
     var active: [TodoItem] {
-        items.filter { !$0.isDone }
+        items.filter { !$0.isDone && $0.recurrence == nil }
     }
 
     var completed: [TodoItem] {
-        items.filter { $0.isDone }
+        items.filter { $0.isDone && $0.recurrence == nil }
             .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+    }
+
+    // Repeating tasks live in their own section regardless of done state.
+    var repeating: [TodoItem] {
+        items.filter { $0.recurrence != nil }
     }
 
     var remainingCount: Int {
@@ -30,6 +41,12 @@ final class TodoStore: ObservableObject {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         items.insert(TodoItem(title: trimmed), at: 0)
+    }
+
+    func addRepeating(_ title: String, recurrence: Recurrence) {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        items.insert(TodoItem(title: trimmed, recurrence: recurrence), at: 0)
     }
 
     /// Reorder an active item so it sits just before `beforeID` in the active list.
@@ -43,7 +60,27 @@ final class TodoStore: ObservableObject {
         } else {
             a.append(moved)
         }
-        items = a + completed
+        items = a + repeating + completed
+    }
+
+    /// Un-check repeating tasks whose reset boundary has passed.
+    func refreshRecurring() {
+        let now = Date()
+        var updated = items
+        var changed = false
+        for i in updated.indices {
+            guard
+                let rec = updated[i].recurrence,
+                updated[i].isDone,
+                let done = updated[i].completedAt
+            else { continue }
+            if now >= rec.nextReset(after: done) {
+                updated[i].isDone = false
+                updated[i].completedAt = nil
+                changed = true
+            }
+        }
+        if changed { items = updated }
     }
 
     func toggle(_ item: TodoItem) {
@@ -57,7 +94,7 @@ final class TodoStore: ObservableObject {
     }
 
     func clearCompleted() {
-        items.removeAll { $0.isDone }
+        items.removeAll { $0.isDone && $0.recurrence == nil }
     }
 
     private func save() {
