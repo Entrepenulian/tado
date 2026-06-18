@@ -108,11 +108,14 @@ private struct PickerRow: View {
             .buttonStyle(.plain)
 
             if open {
-                DatePicker("", selection: $value, displayedComponents: components)
-                    .datePickerStyle(.graphical)
-                    .labelsHidden()
-                    .frame(maxWidth: .infinity)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
+                Group {
+                    if components == .date {
+                        CustomDatePicker(date: $value)
+                    } else {
+                        CustomTimePicker(date: $value)
+                    }
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
     }
