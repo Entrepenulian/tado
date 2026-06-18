@@ -64,7 +64,15 @@ struct ActivityGraph: View {
             .fill(color(for: lvl))
             .frame(width: cell, height: cell)
             .offset(x: push.width, y: push.height)
-            .animation(.spring(response: 0.32, dampingFraction: 0.74), value: hover)
+            .animation(trackingAnimation, value: hover)
+    }
+
+    /// Track the cursor with a fast interactive spring (minimal lag), then
+    /// settle softly when the pointer leaves.
+    private var trackingAnimation: Animation {
+        hover == nil
+            ? .spring(response: 0.4, dampingFraction: 0.72)
+            : .interactiveSpring(response: 0.15, dampingFraction: 0.9, blendDuration: 0.08)
     }
 
     /// Push a cell away from the cursor — strongest nearby, fading to zero at `pushRadius`.
