@@ -1,10 +1,17 @@
 import SwiftUI
+import AppKit
 
 struct MenuView: View {
     @EnvironmentObject private var store: TodoStore
     @State private var showCompleted = false
     @State private var dropTargetID: UUID?
     @State private var checking: Set<UUID> = []
+    @State private var contentHeight: CGFloat = 0
+
+    /// The list grows to fit its content, only scrolling if it would run off-screen.
+    private var maxListHeight: CGFloat {
+        (NSScreen.main?.visibleFrame.height ?? 800) - 220
+    }
 
     // #FF6A1A
     private let accent = Color(red: 1.0, green: 0.4157, blue: 0.1020)
@@ -84,11 +91,17 @@ struct MenuView: View {
                     if !store.completed.isEmpty { completedSection }
                 }
                 .padding(4)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
+                    }
+                )
             }
-            .frame(maxHeight: 360)
+            .frame(height: min(max(contentHeight, 1), maxListHeight))
             .scrollContentBackground(.hidden)
             .liquidGlass(cornerRadius: 16)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
         }
     }
 
@@ -213,5 +226,12 @@ struct MenuView: View {
             }
             .padding(.horizontal, 2)
         }
+    }
+}
+
+private struct ContentHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
