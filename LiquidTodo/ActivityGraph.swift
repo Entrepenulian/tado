@@ -10,8 +10,10 @@ import SwiftUI
 /// the cell under the cursor grows most, neighbours grow less the farther out
 /// they are, and everything springs back on exit.
 struct ActivityGraph: View {
-    let completions: [String: Int]
+    let completions: [String: [String]]
     var accent: Color
+
+    @State private var selectedDay: Date?
 
     private let columns = 17
     private let gap: CGFloat = 3
@@ -101,18 +103,40 @@ struct ActivityGraph: View {
     }()
 
     private func squircle(day: Date?, col: Int, row: Int, peak: Int) -> some View {
-        let lvl: Int
-        if let day {
-            lvl = level(completions[TodoStore.dayKey(day)] ?? 0, peak: peak)
-        } else {
-            lvl = -1 // future day
-        }
+        let count = day.map { completions[TodoStore.dayKey($0)]?.count ?? 0 } ?? 0
+        let lvl = day == nil ? -1 : level(count, peak: peak)
         let push = displacement(col: col, row: row)
         return RoundedRectangle(cornerRadius: cell * 0.28, style: .continuous)
             .fill(color(for: lvl))
             .frame(width: cell, height: cell)
             .offset(x: push.width, y: push.height)
             .animation(trackingAnimation, value: hover)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard let day, count > 0 else { return }
+                selectedDay = sameDay(selectedDay, day) ? nil : day
+            }
+            .popover(isPresented: popoverBinding(for: day, count: count), arrowEdge: .trailing) {
+                if let day {
+                    DayDetailCard(
+                        date: day,
+                        titles: completions[TodoStore.dayKey(day)] ?? [],
+                        accent: accent
+                    )
+                }
+            }
+    }
+
+    private func popoverBinding(for day: Date?, count: Int) -> Binding<Bool> {
+        Binding(
+            get: { day != nil && count > 0 && sameDay(selectedDay, day) },
+            set: { open in if !open { selectedDay = nil } }
+        )
+    }
+
+    private func sameDay(_ a: Date?, _ b: Date?) -> Bool {
+        guard let a, let b else { return false }
+        return cal.isDate(a, inSameDayAs: b)
     }
 
     /// Track the cursor with a fast interactive spring (minimal lag), then
@@ -171,7 +195,7 @@ struct ActivityGraph: View {
         var peak = 0
         for column in cols {
             for case let day? in column {
-                peak = max(peak, completions[TodoStore.dayKey(day)] ?? 0)
+                peak = max(peak, completions[TodoStore.dayKey(day)]?.count ?? 0)
             }
         }
         return max(peak, 1)
