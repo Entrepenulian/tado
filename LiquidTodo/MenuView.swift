@@ -2,7 +2,6 @@ import SwiftUI
 
 struct MenuView: View {
     @EnvironmentObject private var store: TodoStore
-    @State private var draft = ""
     @State private var showCompleted = false
     @State private var dropTargetID: UUID?
     @State private var checking: Set<UUID> = []
@@ -13,13 +12,14 @@ struct MenuView: View {
     var body: some View {
         VStack(spacing: 12) {
             header
-            AddBar(text: $draft, onSubmit: commit)
+            Composer()
             content
             footer
         }
         .padding(14)
         .frame(width: 320)
         .tint(accent)
+        .onAppear { store.refreshRecurring() }
     }
 
     // MARK: - Header
@@ -80,6 +80,7 @@ struct MenuView: View {
                                 }
                             }
                     }
+                    if !store.repeating.isEmpty { repeatingSection }
                     if !store.completed.isEmpty { completedSection }
                 }
                 .padding(4)
@@ -107,6 +108,38 @@ struct MenuView: View {
             onToggle: { withAnimation(.smooth(duration: 0.3)) { store.toggle(item) } },
             onDelete: { withAnimation(.smooth(duration: 0.25)) { store.delete(item) } }
         )
+    }
+
+    // MARK: - Repeating
+
+    private var repeatingSection: some View {
+        VStack(spacing: 2) {
+            HStack(spacing: 6) {
+                Image(systemName: "repeat")
+                    .font(.system(size: 10, weight: .bold))
+                Text("Repeating")
+                    .font(.system(size: 11, weight: .semibold))
+                Text("\(store.repeating.count)")
+                    .font(.system(size: 11, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(.tertiary)
+                Spacer()
+            }
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+
+            ForEach(store.repeating) { item in
+                TodoRow(
+                    item: item,
+                    checked: item.isDone,
+                    subtitle: item.recurrence?.summary,
+                    onToggle: { withAnimation(.smooth(duration: 0.3)) { store.toggle(item) } },
+                    onDelete: { withAnimation(.smooth(duration: 0.25)) { store.delete(item) } }
+                )
+            }
+        }
+        .padding(.top, 4)
     }
 
     /// Fill the checkmark in place, hold a beat, then move the item to Completed.
@@ -180,13 +213,5 @@ struct MenuView: View {
             }
             .padding(.horizontal, 2)
         }
-    }
-
-    // MARK: - Actions
-
-    private func commit() {
-        let text = draft
-        draft = ""
-        withAnimation(.smooth(duration: 0.3)) { store.add(text) }
     }
 }
