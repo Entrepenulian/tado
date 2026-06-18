@@ -5,11 +5,31 @@ struct MenuView: View {
     @State private var showCompleted = false
     @State private var dropTargetID: UUID?
     @State private var checking: Set<UUID> = []
+    @State private var selectedDay: Date?
 
     // #FF6A1A
     private let accent = Color(red: 1.0, green: 0.4157, blue: 0.1020)
 
     var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            mainColumn
+            if let day = selectedDay {
+                DayDetailCard(
+                    date: day,
+                    titles: store.completions[TodoStore.dayKey(day)] ?? [],
+                    accent: accent,
+                    onClose: { withAnimation(.smooth(duration: 0.28)) { selectedDay = nil } }
+                )
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .padding(14)
+        .tint(accent)
+        .onAppear { store.refreshRecurring() }
+        .animation(.smooth(duration: 0.28), value: selectedDay)
+    }
+
+    private var mainColumn: some View {
         VStack(spacing: 12) {
             header
             Composer()
@@ -18,16 +38,13 @@ struct MenuView: View {
             footer
             activitySection
         }
-        .padding(14)
-        .frame(width: 320)
-        .tint(accent)
-        .onAppear { store.refreshRecurring() }
+        .frame(width: 292)
     }
 
     // MARK: - Activity
 
     private var activitySection: some View {
-        ActivityGraph(completions: store.completions, accent: accent)
+        ActivityGraph(completions: store.completions, accent: accent, selectedDay: $selectedDay)
     }
 
     // MARK: - Header

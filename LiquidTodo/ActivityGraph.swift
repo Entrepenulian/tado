@@ -12,8 +12,7 @@ import SwiftUI
 struct ActivityGraph: View {
     let completions: [String: [String]]
     var accent: Color
-
-    @State private var selectedDay: Date?
+    @Binding var selectedDay: Date?
 
     private let columns = 17
     private let gap: CGFloat = 3
@@ -116,22 +115,6 @@ struct ActivityGraph: View {
                 guard let day, count > 0 else { return }
                 selectedDay = sameDay(selectedDay, day) ? nil : day
             }
-            .popover(isPresented: popoverBinding(for: day, count: count), arrowEdge: .trailing) {
-                if let day {
-                    DayDetailCard(
-                        date: day,
-                        titles: completions[TodoStore.dayKey(day)] ?? [],
-                        accent: accent
-                    )
-                }
-            }
-    }
-
-    private func popoverBinding(for day: Date?, count: Int) -> Binding<Bool> {
-        Binding(
-            get: { day != nil && count > 0 && sameDay(selectedDay, day) },
-            set: { open in if !open { selectedDay = nil } }
-        )
     }
 
     private func sameDay(_ a: Date?, _ b: Date?) -> Bool {
