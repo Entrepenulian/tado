@@ -20,8 +20,8 @@ struct ActivityGraph: View {
     private let cal = Calendar.current
 
     // Hover repel tuning.
-    private let pushRadius: CGFloat = 50
-    private let maxPush: CGFloat = 4.5
+    private let pushSpread: CGFloat = 18 // distance to the peak-push ring
+    private let maxPush: CGFloat = 5.5
 
     @State private var hover: CGPoint?
 
@@ -75,7 +75,9 @@ struct ActivityGraph: View {
             : .interactiveSpring(response: 0.15, dampingFraction: 0.9, blendDuration: 0.08)
     }
 
-    /// Push a cell away from the cursor — strongest nearby, fading to zero at `pushRadius`.
+    /// Push a cell away from the cursor along a smooth blooming-ring field:
+    /// displacement rises to a peak in a ring at `pushSpread` and tapers off both
+    /// outward (no hard edge) and inward (→0 under the cursor, so no direction flip).
     private func displacement(col: Int, row: Int) -> CGSize {
         guard let hover else { return .zero }
         let center = CGPoint(
@@ -85,14 +87,13 @@ struct ActivityGraph: View {
         let dx = center.x - hover.x
         let dy = center.y - hover.y
         let distance = sqrt(dx * dx + dy * dy)
-        guard distance < pushRadius else { return .zero }
+        guard distance > 0.001 else { return .zero }
 
-        let direction = distance > 0.001
-            ? CGSize(width: dx / distance, height: dy / distance)
-            : .zero
-        let t = 1 - distance / pushRadius
-        let magnitude = maxPush * t * t // ease the falloff
-        return CGSize(width: direction.width * magnitude, height: direction.height * magnitude)
+        // Normalized Gaussian bump: r·e^(−r²/2), peak 1 at r = 1 (distance == pushSpread).
+        let r = distance / pushSpread
+        let bump = (r * exp(-r * r / 2)) / 0.606_530_66
+        let magnitude = maxPush * bump
+        return CGSize(width: dx / distance * magnitude, height: dy / distance * magnitude)
     }
 
     // MARK: - Dates
