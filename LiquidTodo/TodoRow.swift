@@ -5,6 +5,7 @@ import SwiftUI
 struct TodoRow: View {
     let item: TodoItem
     let checked: Bool
+    var subtitle: String? = nil
     let onToggle: () -> Void
     let onDelete: () -> Void
     @State private var hovering = false
@@ -26,11 +27,19 @@ struct TodoRow: View {
                 withAnimation(.easeOut(duration: 0.12)) { pressed = p }
             }, perform: {})
 
-            Text(item.title)
-                .font(.system(size: 13))
-                .strikethrough(checked, color: .secondary)
-                .foregroundStyle(checked ? .secondary : .primary)
-                .lineLimit(2)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(.system(size: 13))
+                    .strikethrough(checked, color: .secondary)
+                    .foregroundStyle(checked ? .secondary : .primary)
+                    .lineLimit(2)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.system(size: 10.5))
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                }
+            }
 
             Spacer(minLength: 4)
 
