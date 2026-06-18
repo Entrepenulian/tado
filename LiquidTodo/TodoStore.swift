@@ -7,11 +7,27 @@ final class TodoStore: ObservableObject {
         didSet { save() }
     }
 
+    /// Per-day completion tally for the activity graph. Survives clearing/deleting.
+    @Published private(set) var completions: [String: Int] = [:] {
+        didSet { saveCompletions() }
+    }
+
     private let key = "liquidtodo.items.v1"
+    private let completionsKey = "liquidtodo.completions.v1"
     private var resetTimer: Timer?
+
+    private static let dayFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
+    static func dayKey(_ date: Date) -> String { dayFormatter.string(from: date) }
 
     init() {
         load()
+        loadCompletions()
         refreshRecurring()
         resetTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshRecurring() }
@@ -85,8 +101,15 @@ final class TodoStore: ObservableObject {
 
     func toggle(_ item: TodoItem) {
         guard let i = items.firstIndex(where: { $0.id == item.id }) else { return }
-        items[i].isDone.toggle()
-        items[i].completedAt = items[i].isDone ? Date() : nil
+        let nowDone = !items[i].isDone
+        items[i].isDone = nowDone
+        items[i].completedAt = nowDone ? Date() : nil
+        recordCompletion(delta: nowDone ? 1 : -1)
+    }
+
+    private func recordCompletion(delta: Int) {
+        let k = Self.dayKey(Date())
+        completions[k] = max(0, (completions[k] ?? 0) + delta)
     }
 
     func delete(_ item: TodoItem) {
@@ -108,5 +131,18 @@ final class TodoStore: ObservableObject {
             let decoded = try? JSONDecoder().decode([TodoItem].self, from: data)
         else { return }
         items = decoded
+    }
+
+    private func saveCompletions() {
+        guard let data = try? JSONEncoder().encode(completions) else { return }
+        UserDefaults.standard.set(data, forKey: completionsKey)
+    }
+
+    private func loadCompletions() {
+        guard
+            let data = UserDefaults.standard.data(forKey: completionsKey),
+            let decoded = try? JSONDecoder().decode([String: Int].self, from: data)
+        else { return }
+        completions = decoded
     }
 }
