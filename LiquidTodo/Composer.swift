@@ -36,20 +36,19 @@ struct Composer: View {
         Button {
             withAnimation(.smooth(duration: 0.3)) { expanded = true }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 13, weight: .bold))
                 Text("New ToDo")
                     .font(.system(size: 13, weight: .semibold))
-                Spacer()
             }
-            .foregroundStyle(.tint)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 11)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .liquidGlass(cornerRadius: 14)
+        .background(.tint, in: Capsule())
     }
 
     // MARK: - Expanded form
