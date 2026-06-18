@@ -1,17 +1,10 @@
 import SwiftUI
-import AppKit
 
 struct MenuView: View {
     @EnvironmentObject private var store: TodoStore
     @State private var showCompleted = false
     @State private var dropTargetID: UUID?
     @State private var checking: Set<UUID> = []
-    @State private var contentHeight: CGFloat = 0
-
-    /// The list grows to fit its content, only scrolling if it would run off-screen.
-    private var maxListHeight: CGFloat {
-        (NSScreen.main?.visibleFrame.height ?? 800) - 220
-    }
 
     // #FF6A1A
     private let accent = Color(red: 1.0, green: 0.4157, blue: 0.1020)
@@ -52,56 +45,46 @@ struct MenuView: View {
         if store.items.isEmpty {
             emptyState
         } else {
-            ScrollView {
-                VStack(spacing: 2) {
-                    ForEach(store.active) { item in
-                        activeRow(item)
-                            .overlay(alignment: .top) {
-                                if dropTargetID == item.id {
-                                    Capsule()
-                                        .fill(.tint)
-                                        .frame(height: 2)
-                                        .padding(.horizontal, 8)
-                                }
+            VStack(spacing: 2) {
+                ForEach(store.active) { item in
+                    activeRow(item)
+                        .overlay(alignment: .top) {
+                            if dropTargetID == item.id {
+                                Capsule()
+                                    .fill(.tint)
+                                    .frame(height: 2)
+                                    .padding(.horizontal, 8)
                             }
-                            .draggable(item.id.uuidString) {
-                                activeRow(item)
-                                    .frame(width: 288)
-                                    .liquidGlass(cornerRadius: 10)
+                        }
+                        .draggable(item.id.uuidString) {
+                            activeRow(item)
+                                .frame(width: 288)
+                                .liquidGlass(cornerRadius: 10)
+                        }
+                        .dropDestination(for: String.self) { dropped, _ in
+                            dropTargetID = nil
+                            guard
+                                let raw = dropped.first,
+                                let from = UUID(uuidString: raw)
+                            else { return false }
+                            withAnimation(.smooth(duration: 0.25)) {
+                                store.move(activeID: from, beforeID: item.id)
                             }
-                            .dropDestination(for: String.self) { dropped, _ in
+                            return true
+                        } isTargeted: { targeted in
+                            if targeted {
+                                dropTargetID = item.id
+                            } else if dropTargetID == item.id {
                                 dropTargetID = nil
-                                guard
-                                    let raw = dropped.first,
-                                    let from = UUID(uuidString: raw)
-                                else { return false }
-                                withAnimation(.smooth(duration: 0.25)) {
-                                    store.move(activeID: from, beforeID: item.id)
-                                }
-                                return true
-                            } isTargeted: { targeted in
-                                if targeted {
-                                    dropTargetID = item.id
-                                } else if dropTargetID == item.id {
-                                    dropTargetID = nil
-                                }
                             }
-                    }
-                    if !store.repeating.isEmpty { repeatingSection }
-                    if !store.completed.isEmpty { completedSection }
+                        }
                 }
-                .padding(4)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(key: ContentHeightKey.self, value: proxy.size.height)
-                    }
-                )
+                if !store.repeating.isEmpty { repeatingSection }
+                if !store.completed.isEmpty { completedSection }
             }
-            .frame(height: min(max(contentHeight, 1), maxListHeight))
-            .scrollContentBackground(.hidden)
+            .padding(4)
             .liquidGlass(cornerRadius: 16)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-            .onPreferenceChange(ContentHeightKey.self) { contentHeight = $0 }
         }
     }
 
@@ -226,12 +209,5 @@ struct MenuView: View {
             }
             .padding(.horizontal, 2)
         }
-    }
-}
-
-private struct ContentHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
