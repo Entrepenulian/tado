@@ -5,6 +5,10 @@ import SwiftUI
 /// Shading is *relative*: each day's level is its count scaled against the
 /// busiest day in view. So when little data exists, a few completions read as a
 /// strong shade; as you complete more over time, the scale recalibrates.
+///
+/// Hover applies a distance-falloff lift (transitions-dev "avatar group hover"):
+/// the cell under the cursor grows most, neighbours grow less the farther out
+/// they are, and everything springs back on exit.
 struct ActivityGraph: View {
     let completions: [String: Int]
     var accent: Color
@@ -15,6 +19,12 @@ struct ActivityGraph: View {
     private let gridWidth: CGFloat = 268
     private let cal = Calendar.current
 
+    // Hover falloff tuning.
+    private let liftRadius: CGFloat = 50
+    private let maxLift: CGFloat = 0.7
+
+    @State private var hover: CGPoint?
+
     private var cell: CGFloat {
         (gridWidth - CGFloat(columns - 1) * gap) / CGFloat(columns)
     }
@@ -24,28 +34,52 @@ struct ActivityGraph: View {
         let peak = peakCount(in: cols)
 
         HStack(spacing: gap) {
-            ForEach(Array(cols.enumerated()), id: \.offset) { _, column in
+            ForEach(0..<columns, id: \.self) { c in
                 VStack(spacing: gap) {
-                    ForEach(Array(column.enumerated()), id: \.offset) { _, day in
-                        squircle(for: day, peak: peak)
+                    ForEach(0..<7, id: \.self) { r in
+                        squircle(day: cols[c][r], col: c, row: r, peak: peak)
                     }
                 }
+            }
+        }
+        .onContinuousHover { phase in
+            switch phase {
+            case .active(let location): hover = location
+            case .ended: hover = nil
             }
         }
         .padding(12)
         .liquidGlass(cornerRadius: 16)
     }
 
-    private func squircle(for day: Date?, peak: Int) -> some View {
+    private func squircle(day: Date?, col: Int, row: Int, peak: Int) -> some View {
         let lvl: Int
         if let day {
             lvl = level(completions[TodoStore.dayKey(day)] ?? 0, peak: peak)
         } else {
             lvl = -1 // future day
         }
+        let scale = lift(col: col, row: row)
         return RoundedRectangle(cornerRadius: cell * 0.28, style: .continuous)
             .fill(color(for: lvl))
             .frame(width: cell, height: cell)
+            .scaleEffect(scale)
+            .zIndex(Double(scale))
+            .animation(.spring(response: 0.3, dampingFraction: 0.62), value: hover)
+    }
+
+    /// Scale for a cell based on its distance from the cursor.
+    private func lift(col: Int, row: Int) -> CGFloat {
+        guard let hover else { return 1 }
+        let center = CGPoint(
+            x: CGFloat(col) * (cell + gap) + cell / 2,
+            y: CGFloat(row) * (cell + gap) + cell / 2
+        )
+        let dx = center.x - hover.x
+        let dy = center.y - hover.y
+        let distance = sqrt(dx * dx + dy * dy)
+        let t = max(0, 1 - distance / liftRadius)
+        return 1 + maxLift * t * t // ease the falloff
     }
 
     // MARK: - Dates
