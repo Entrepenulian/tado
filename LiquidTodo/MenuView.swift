@@ -14,6 +14,8 @@ struct MenuView: View {
             header
             Composer()
             content
+            if !store.repeating.isEmpty { repeatingSection }
+            if !store.completed.isEmpty { completedSection }
             footer
             activitySection
         }
@@ -51,7 +53,7 @@ struct MenuView: View {
     private var content: some View {
         if store.items.isEmpty {
             emptyState
-        } else {
+        } else if !store.active.isEmpty {
             VStack(spacing: 2) {
                 ForEach(store.active) { item in
                     activeRow(item)
@@ -86,13 +88,18 @@ struct MenuView: View {
                             }
                         }
                 }
-                if !store.repeating.isEmpty { repeatingSection }
-                if !store.completed.isEmpty { completedSection }
             }
             .padding(4)
             .liquidGlass(cornerRadius: 16)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
+    }
+
+    private func sectionCard<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        VStack(spacing: 2, content: content)
+            .padding(4)
+            .liquidGlass(cornerRadius: 16)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private func activeRow(_ item: TodoItem) -> some View {
@@ -116,7 +123,7 @@ struct MenuView: View {
     // MARK: - Repeating
 
     private var repeatingSection: some View {
-        VStack(spacing: 2) {
+        sectionCard {
             HStack(spacing: 6) {
                 Image(systemName: "repeat")
                     .font(.system(size: 10, weight: .bold))
@@ -129,7 +136,7 @@ struct MenuView: View {
                 Spacer()
             }
             .foregroundStyle(.secondary)
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 8)
             .padding(.vertical, 6)
 
             ForEach(store.repeating) { item in
@@ -142,7 +149,6 @@ struct MenuView: View {
                 )
             }
         }
-        .padding(.top, 4)
     }
 
     /// Fill the checkmark in place, hold a beat, then move the item to Completed.
@@ -156,7 +162,7 @@ struct MenuView: View {
     }
 
     private var completedSection: some View {
-        VStack(spacing: 2) {
+        sectionCard {
             Button {
                 withAnimation(.smooth(duration: 0.25)) { showCompleted.toggle() }
             } label: {
@@ -173,7 +179,7 @@ struct MenuView: View {
                     Spacer()
                 }
                 .foregroundStyle(.secondary)
-                .padding(.horizontal, 10)
+                .padding(.horizontal, 8)
                 .padding(.vertical, 6)
                 .contentShape(Rectangle())
             }
@@ -183,7 +189,6 @@ struct MenuView: View {
                 ForEach(store.completed) { completedRow($0) }
             }
         }
-        .padding(.top, 4)
     }
 
     private var emptyState: some View {
@@ -204,7 +209,7 @@ struct MenuView: View {
 
     @ViewBuilder
     private var footer: some View {
-        if !store.completed.isEmpty {
+        if showCompleted && !store.completed.isEmpty {
             HStack(spacing: 10) {
                 Button("Clear Completed") {
                     withAnimation(.smooth(duration: 0.3)) { store.clearCompleted() }
