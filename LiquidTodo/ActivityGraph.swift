@@ -9,26 +9,28 @@ struct ActivityGraph: View {
     let completions: [String: Int]
     var accent: Color
 
-    private let weeks = 16
-    private let cell: CGFloat = 13
+    private let columns = 17
     private let gap: CGFloat = 3
+    // Card content width: panel 320 − body padding (28) − card padding (24).
+    private let gridWidth: CGFloat = 268
     private let cal = Calendar.current
+
+    private var cell: CGFloat {
+        (gridWidth - CGFloat(columns - 1) * gap) / CGFloat(columns)
+    }
 
     var body: some View {
         let cols = gridColumns()
         let peak = peakCount(in: cols)
 
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: gap) {
-                ForEach(Array(cols.enumerated()), id: \.offset) { _, column in
-                    VStack(spacing: gap) {
-                        ForEach(Array(column.enumerated()), id: \.offset) { _, day in
-                            squircle(for: day, peak: peak)
-                        }
+        HStack(spacing: gap) {
+            ForEach(Array(cols.enumerated()), id: \.offset) { _, column in
+                VStack(spacing: gap) {
+                    ForEach(Array(column.enumerated()), id: \.offset) { _, day in
+                        squircle(for: day, peak: peak)
                     }
                 }
             }
-            legend
         }
         .padding(12)
         .liquidGlass(cornerRadius: 16)
@@ -41,49 +43,32 @@ struct ActivityGraph: View {
         } else {
             lvl = -1 // future day
         }
-        return RoundedRectangle(cornerRadius: 3.5, style: .continuous)
+        return RoundedRectangle(cornerRadius: cell * 0.28, style: .continuous)
             .fill(color(for: lvl))
             .frame(width: cell, height: cell)
-    }
-
-    private var legend: some View {
-        HStack(spacing: 4) {
-            Spacer()
-            Text("Less")
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
-            ForEach(0...4, id: \.self) { lvl in
-                RoundedRectangle(cornerRadius: 2.5, style: .continuous)
-                    .fill(color(for: lvl))
-                    .frame(width: 9, height: 9)
-            }
-            Text("More")
-                .font(.system(size: 9))
-                .foregroundStyle(.tertiary)
-        }
     }
 
     // MARK: - Dates
 
     private var today: Date { cal.startOfDay(for: Date()) }
 
-    /// `weeks` columns of 7 days. Future days are `nil`.
+    /// `columns` weeks of 7 days. Future days are `nil`.
     private func gridColumns() -> [[Date?]] {
         let weekStart = cal.date(
             from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: today)
         ) ?? today
-        let start = cal.date(byAdding: .day, value: -7 * (weeks - 1), to: weekStart) ?? today
+        let start = cal.date(byAdding: .day, value: -7 * (columns - 1), to: weekStart) ?? today
 
-        var columns: [[Date?]] = []
-        for c in 0..<weeks {
+        var grid: [[Date?]] = []
+        for c in 0..<columns {
             var column: [Date?] = []
             for r in 0..<7 {
                 let day = cal.date(byAdding: .day, value: c * 7 + r, to: start) ?? start
                 column.append(day > today ? nil : day)
             }
-            columns.append(column)
+            grid.append(column)
         }
-        return columns
+        return grid
     }
 
     private func peakCount(in cols: [[Date?]]) -> Int {
