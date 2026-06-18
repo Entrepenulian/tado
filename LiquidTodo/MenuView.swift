@@ -14,7 +14,6 @@ struct MenuView: View {
             header
             Composer()
             content
-            if !store.repeating.isEmpty { repeatingSection }
             if !store.completed.isEmpty { completedSection }
             footer
             activitySection
@@ -53,7 +52,7 @@ struct MenuView: View {
     private var content: some View {
         if store.items.isEmpty {
             emptyState
-        } else if !store.active.isEmpty {
+        } else if !store.active.isEmpty || !store.repeating.isEmpty {
             VStack(spacing: 2) {
                 ForEach(store.active) { item in
                     activeRow(item)
@@ -88,6 +87,7 @@ struct MenuView: View {
                             }
                         }
                 }
+                if !store.repeating.isEmpty { repeatingSection }
             }
             .padding(4)
             .liquidGlass(cornerRadius: 16)
@@ -123,7 +123,7 @@ struct MenuView: View {
     // MARK: - Repeating
 
     private var repeatingSection: some View {
-        sectionCard {
+        VStack(spacing: 2) {
             HStack(spacing: 6) {
                 Image(systemName: "repeat")
                     .font(.system(size: 10, weight: .bold))
@@ -149,6 +149,7 @@ struct MenuView: View {
                 )
             }
         }
+        .padding(.top, 4)
     }
 
     /// Fill the checkmark in place, hold a beat, then move the item to Completed.
