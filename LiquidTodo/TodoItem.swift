@@ -7,18 +7,22 @@ struct TodoItem: Identifiable, Codable, Equatable {
     var isDone: Bool
     var createdAt: Date
     var completedAt: Date?
+    /// Non-nil for repeating tasks. These live in the Repeating section.
+    var recurrence: Recurrence?
 
     init(
         id: UUID = UUID(),
         title: String,
         isDone: Bool = false,
         createdAt: Date = Date(),
-        completedAt: Date? = nil
+        completedAt: Date? = nil,
+        recurrence: Recurrence? = nil
     ) {
         self.id = id
         self.title = title
         self.isDone = isDone
         self.createdAt = createdAt
         self.completedAt = completedAt
+        self.recurrence = recurrence
     }
 }
