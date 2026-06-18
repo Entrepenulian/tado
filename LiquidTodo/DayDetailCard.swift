@@ -1,12 +1,18 @@
 import SwiftUI
 
 /// Side card shown beside the panel when a day with activity is clicked.
-/// Top: date + count. Below: the tasks completed that day. Sizes to its content.
+/// Floats next to the main card, bottom-aligned to it. Sizes to its content,
+/// capped at the main card's height (scrolls inside on very busy days).
 struct DayDetailCard: View {
     let date: Date
     let titles: [String]
     var accent: Color
+    var maxHeight: CGFloat
     var onClose: () -> Void
+
+    @State private var listHeight: CGFloat = 0
+
+    private let headerEstimate: CGFloat = 62
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -16,10 +22,22 @@ struct DayDetailCard: View {
     }()
 
     var body: some View {
+        let listCap = max(maxHeight - headerEstimate, 90)
+
         VStack(alignment: .leading, spacing: 0) {
             header
             Divider().opacity(0.4).padding(.horizontal, 10)
-            list
+            ScrollView {
+                list
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: DayListHeightKey.self, value: proxy.size.height)
+                        }
+                    )
+            }
+            .frame(height: min(max(listHeight, 1), listCap))
+            .scrollBounceBehavior(.basedOnSize)
+            .onPreferenceChange(DayListHeightKey.self) { listHeight = $0 }
         }
         .frame(width: 214)
         .liquidGlass(cornerRadius: 18)
@@ -76,5 +94,12 @@ struct DayDetailCard: View {
             }
         }
         .padding(10)
+    }
+}
+
+private struct DayListHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
