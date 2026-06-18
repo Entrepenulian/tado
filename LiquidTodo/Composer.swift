@@ -60,7 +60,9 @@ struct Composer: View {
                 .font(.system(size: 14))
                 .focused($focused)
                 .onSubmit { add() }
-                .onAppear { focused = true }
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { focused = true }
+                }
 
             Divider().opacity(0.4)
 
