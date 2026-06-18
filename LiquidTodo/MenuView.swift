@@ -6,31 +6,36 @@ struct MenuView: View {
     @State private var dropTargetID: UUID?
     @State private var checking: Set<UUID> = []
     @State private var selectedDay: Date?
-    @State private var mainHeight: CGFloat = 0
+    @StateObject private var dayPanel = DayPanelController()
 
     // #FF6A1A
     private let accent = Color(red: 1.0, green: 0.4157, blue: 0.1020)
 
     var body: some View {
-        HStack(alignment: .bottom, spacing: 12) {
-            mainColumn
-            if let day = selectedDay {
-                DayDetailCard(
-                    date: day,
-                    titles: store.completions[TodoStore.dayKey(day)] ?? [],
-                    accent: accent,
-                    maxHeight: mainHeight,
-                    onClose: { withAnimation(.smooth(duration: 0.28)) { selectedDay = nil } }
-                )
-                .transition(.move(edge: .trailing).combined(with: .opacity))
+        mainColumn
+            .padding(14)
+            .frame(width: 320)
+            .tint(accent)
+            .background(WindowTopAnchor())
+            .background(MainWindowAccessor { window in
+                dayPanel.attach(window, onAutoDismiss: { selectedDay = nil })
+            })
+            .onChange(of: selectedDay) { _, day in
+                if let day {
+                    dayPanel.present(
+                        DayDetailCard(
+                            date: day,
+                            titles: store.completions[TodoStore.dayKey(day)] ?? [],
+                            accent: accent,
+                            onClose: { selectedDay = nil }
+                        )
+                    )
+                } else {
+                    dayPanel.dismiss()
+                }
             }
-        }
-        .padding(14)
-        .tint(accent)
-        .background(WindowTopAnchor())
-        .onPreferenceChange(MainHeightKey.self) { mainHeight = $0 }
-        .onAppear { store.refreshRecurring() }
-        .animation(.smooth(duration: 0.28), value: selectedDay)
+            .onAppear { store.refreshRecurring() }
+            .onDisappear { selectedDay = nil }
     }
 
     private var mainColumn: some View {
@@ -42,12 +47,6 @@ struct MenuView: View {
             footer
             activitySection
         }
-        .frame(width: 292)
-        .background(
-            GeometryReader { proxy in
-                Color.clear.preference(key: MainHeightKey.self, value: proxy.size.height)
-            }
-        )
     }
 
     // MARK: - Activity
@@ -248,12 +247,5 @@ struct MenuView: View {
             }
             .padding(.horizontal, 2)
         }
-    }
-}
-
-private struct MainHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
