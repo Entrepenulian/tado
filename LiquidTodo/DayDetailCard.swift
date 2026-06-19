@@ -27,28 +27,33 @@ struct DayDetailSection: View {
     }
 
     private var header: some View {
-        HStack(spacing: 6) {
-            Text(Self.dateFormatter.string(from: date))
-                .font(.system(size: 12.5, weight: .semibold, design: .rounded))
-            Text("\(titles.count)")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .foregroundStyle(.tint)
-            Text(titles.count == 1 ? "task" : "tasks")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.tertiary)
-            Spacer()
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(Self.dateFormatter.string(from: date))
+                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+                HStack(spacing: 5) {
+                    Text("\(titles.count)")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(.tint)
+                    Text(titles.count == 1 ? "task completed" : "tasks completed")
+                        .font(.system(size: 11.5, weight: .medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
             Button(action: onClose) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.secondary)
-                    .frame(width: 20, height: 20)
+                    .frame(width: 22, height: 22)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .padding(.top, 9)
+        .padding(.bottom, 8)
     }
 
     private func taskRow(_ title: String) -> some View {
