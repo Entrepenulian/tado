@@ -22,7 +22,7 @@ struct ActivityGraph: View {
 
     // Hover repel tuning.
     private let pushSpread: CGFloat = 16 // distance to the peak-push ring
-    private let maxPush: CGFloat = 2.3
+    private let maxPush: CGFloat = 1.3
 
     @State private var hover: CGPoint?
     @State private var hoveredIndex: Int?
