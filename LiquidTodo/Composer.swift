@@ -37,11 +37,11 @@ struct Composer: View {
         Button {
             withAnimation(.smooth(duration: 0.3)) { expanded = true }
         } label: {
-            HStack(spacing: hovering ? 13 : 6) {
-                Image(systemName: "plus")
-                    .font(.system(size: 13, weight: .bold))
+            HStack(spacing: 6) {
                 Text("New ToDo")
                     .font(.system(size: 13, weight: .semibold))
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .bold))
             }
             .foregroundStyle(.white)
             .frame(maxWidth: .infinity)
@@ -49,9 +49,14 @@ struct Composer: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .background(.tint, in: Capsule())
+        .background {
+            ZStack {
+                Capsule().fill(.tint)
+                Capsule().fill(.black.opacity(hovering ? 0.16 : 0))
+            }
+        }
         .onHover { h in
-            withAnimation(.smooth(duration: 0.25)) { hovering = h }
+            withAnimation(.smooth(duration: 0.2)) { hovering = h }
         }
     }
 
