@@ -90,7 +90,7 @@ struct ActivityGraph: View {
                         y: CGFloat(row) * (cell + gap) + cell / 2 - 18
                     )
                     .allowsHitTesting(false)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    .transition(.opacity)
             }
         }
     }
@@ -179,7 +179,9 @@ struct ActivityGraph: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 guard let day, count > 0 else { return }
-                selectedDay = sameDay(selectedDay, day) ? nil : day
+                withAnimation(.smooth(duration: 0.28)) {
+                    selectedDay = sameDay(selectedDay, day) ? nil : day
+                }
             }
     }
 

@@ -6,7 +6,6 @@ struct MenuView: View {
     @State private var dropTargetID: UUID?
     @State private var checking: Set<UUID> = []
     @State private var selectedDay: Date?
-    @StateObject private var dayPanel = DayPanelController()
 
     // #FF6A1A
     private let accent = Color(red: 1.0, green: 0.4157, blue: 0.1020)
@@ -17,24 +16,6 @@ struct MenuView: View {
             .frame(width: 320)
             .tint(accent)
             .background(WindowTopAnchor())
-            .background(MainWindowAccessor { window in
-                dayPanel.attach(window, onAutoDismiss: { selectedDay = nil })
-            })
-            .onPreferenceChange(CardHeightKey.self) { dayPanel.setMainCardHeight($0) }
-            .onChange(of: selectedDay) { _, day in
-                if let day {
-                    dayPanel.present(
-                        DayDetailCard(
-                            date: day,
-                            titles: store.completions[TodoStore.dayKey(day)] ?? [],
-                            accent: accent,
-                            onClose: { selectedDay = nil }
-                        )
-                    )
-                } else {
-                    dayPanel.dismiss()
-                }
-            }
             .onAppear { store.refreshRecurring() }
             .onDisappear { selectedDay = nil }
     }
@@ -47,12 +28,15 @@ struct MenuView: View {
             if !store.completed.isEmpty { completedSection }
             footer
             activitySection
-        }
-        .background(
-            GeometryReader { proxy in
-                Color.clear.preference(key: CardHeightKey.self, value: proxy.size.height)
+            if let day = selectedDay {
+                DayDetailSection(
+                    date: day,
+                    titles: store.completions[TodoStore.dayKey(day)] ?? [],
+                    onClose: { withAnimation(.smooth(duration: 0.28)) { selectedDay = nil } }
+                )
+                .transition(.opacity)
             }
-        )
+        }
     }
 
     // MARK: - Activity
@@ -253,12 +237,5 @@ struct MenuView: View {
             }
             .padding(.horizontal, 2)
         }
-    }
-}
-
-private struct CardHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }

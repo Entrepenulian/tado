@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// The floating day-detail card. Hosted in its own panel beside the main window.
-struct DayDetailCard: View {
+/// The day-detail section shown below the activity graph when a square is
+/// clicked: a header with the date + count, then the tasks completed that day.
+struct DayDetailSection: View {
     let date: Date
     let titles: [String]
-    var accent: Color
     var onClose: () -> Void
 
     private static let dateFormatter: DateFormatter = {
@@ -15,65 +15,54 @@ struct DayDetailCard: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 2) {
             header
-            Divider().opacity(0.4).padding(.horizontal, 10)
-            list
+            ForEach(Array(titles.enumerated()), id: \.offset) { _, title in
+                taskRow(title)
+            }
         }
-        .frame(width: 214)
-        .liquidGlass(cornerRadius: 18)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .tint(accent)
+        .padding(4)
+        .liquidGlass(cornerRadius: 16)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(Self.dateFormatter.string(from: date))
-                    .font(.system(size: 14, weight: .semibold, design: .rounded))
-                HStack(spacing: 6) {
-                    Circle().fill(.tint).frame(width: 6, height: 6)
-                    Text("\(titles.count) completed")
-                        .font(.system(size: 11.5, weight: .medium))
-                        .monospacedDigit()
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 0)
+        HStack(spacing: 6) {
+            Text(Self.dateFormatter.string(from: date))
+                .font(.system(size: 12.5, weight: .semibold, design: .rounded))
+            Text("\(titles.count)")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(.tint)
+            Text(titles.count == 1 ? "task" : "tasks")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.tertiary)
+            Spacer()
             Button(action: onClose) {
                 Image(systemName: "xmark")
                     .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(.tertiary)
-                    .frame(width: 22, height: 22)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20, height: 20)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12)
-        .padding(.top, 11)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
     }
 
-    private var list: some View {
-        VStack(spacing: 3) {
-            ForEach(Array(titles.enumerated()), id: \.offset) { _, title in
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(.tint)
-                        .padding(.top, 0.5)
-                    Text(title)
-                        .font(.system(size: 12))
-                        .foregroundStyle(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
+    private func taskRow(_ title: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 13))
+                .foregroundStyle(.tint)
+            Text(title)
+                .font(.system(size: 13))
+                .lineLimit(1)
+                .truncationMode(.tail)
+            Spacer(minLength: 0)
         }
-        .padding(10)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
     }
 }
