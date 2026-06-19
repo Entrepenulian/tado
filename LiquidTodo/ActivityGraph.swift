@@ -25,6 +25,8 @@ struct ActivityGraph: View {
     private let maxPush: CGFloat = 2.3
 
     @State private var hover: CGPoint?
+    @State private var hoveredIndex: Int?
+    @State private var showTooltip = false
 
     private var cell: CGFloat {
         (gridWidth - CGFloat(columns - 1) * gap) / CGFloat(columns)
@@ -48,15 +50,69 @@ struct ActivityGraph: View {
             }
             .onContinuousHover { phase in
                 switch phase {
-                case .active(let location): hover = location
-                case .ended: hover = nil
+                case .active(let location):
+                    hover = location
+                    let idx = cellIndex(at: location)
+                    if idx != hoveredIndex { hoveredIndex = idx }
+                case .ended:
+                    hover = nil
+                    hoveredIndex = nil
                 }
+            }
+            .overlay(alignment: .topLeading) { tooltipOverlay(cols: cols) }
+            .task(id: hoveredIndex) {
+                withAnimation(.smooth(duration: 0.16)) { showTooltip = false }
+                guard hoveredIndex != nil else { return }
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+                withAnimation(.smooth(duration: 0.2)) { showTooltip = true }
             }
 
             legend
         }
         .padding(12)
         .liquidGlass(cornerRadius: 16)
+    }
+
+    // MARK: - Dwell tooltip
+
+    private func cellIndex(at point: CGPoint) -> Int? {
+        let stride = cell + gap
+        let col = Int(point.x / stride)
+        let row = Int(point.y / stride)
+        guard col >= 0, col < columns, row >= 0, row < 7 else { return nil }
+        return col * 7 + row
+    }
+
+    @ViewBuilder
+    private func tooltipOverlay(cols: [[Date?]]) -> some View {
+        if showTooltip, let idx = hoveredIndex {
+            let col = idx / 7
+            let row = idx % 7
+            if col < cols.count, let day = cols[col][row] {
+                let count = completions[TodoStore.dayKey(day)]?.count ?? 0
+                tooltip(count: count)
+                    .position(
+                        x: CGFloat(col) * (cell + gap) + cell / 2,
+                        y: CGFloat(row) * (cell + gap) + cell / 2 - 18
+                    )
+                    .allowsHitTesting(false)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
+            }
+        }
+    }
+
+    private func tooltip(count: Int) -> some View {
+        Text("\(count) \(count == 1 ? "task" : "tasks")")
+            .font(.system(size: 11, weight: .semibold))
+            .monospacedDigit()
+            .foregroundStyle(.primary)
+            .fixedSize()
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.regularMaterial, in: Capsule())
+            .overlay(Capsule().strokeBorder(.primary.opacity(0.08)))
+            .shadow(color: .black.opacity(0.18), radius: 5, y: 1)
     }
 
     private var legend: some View {
