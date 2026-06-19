@@ -4,6 +4,7 @@ import SwiftUI
 struct Composer: View {
     @EnvironmentObject private var store: TodoStore
     @State private var expanded = false
+    @State private var hovering = false
 
     @State private var title = ""
     @State private var repeats = false
@@ -36,7 +37,7 @@ struct Composer: View {
         Button {
             withAnimation(.smooth(duration: 0.3)) { expanded = true }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: hovering ? 13 : 6) {
                 Image(systemName: "plus")
                     .font(.system(size: 13, weight: .bold))
                 Text("New ToDo")
@@ -49,6 +50,9 @@ struct Composer: View {
         }
         .buttonStyle(.plain)
         .background(.tint, in: Capsule())
+        .onHover { h in
+            withAnimation(.smooth(duration: 0.25)) { hovering = h }
+        }
     }
 
     // MARK: - Expanded form
