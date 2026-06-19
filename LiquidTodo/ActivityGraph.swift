@@ -54,11 +54,11 @@ struct ActivityGraph: View {
             }
             .overlay(alignment: .topLeading) { tooltipOverlay(cols: cols) }
             .task(id: hoveredIndex) {
-                withAnimation(.smooth(duration: 0.16)) { showTooltip = false }
+                withAnimation(.smooth(duration: 0.14)) { showTooltip = false }
                 guard hoveredIndex != nil else { return }
-                try? await Task.sleep(for: .seconds(2))
+                try? await Task.sleep(for: .seconds(0.18))
                 guard !Task.isCancelled else { return }
-                withAnimation(.smooth(duration: 0.2)) { showTooltip = true }
+                withAnimation(.smooth(duration: 0.28)) { showTooltip = true }
             }
 
             legend
@@ -90,7 +90,7 @@ struct ActivityGraph: View {
                         y: CGFloat(row) * (cell + gap) + cell / 2 - 18
                     )
                     .allowsHitTesting(false)
-                    .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottom)))
+                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
         }
     }
