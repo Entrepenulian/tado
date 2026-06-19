@@ -20,11 +20,6 @@ struct ActivityGraph: View {
     private let gridWidth: CGFloat = 268
     private let cal = Calendar.current
 
-    // Hover repel tuning.
-    private let pushSpread: CGFloat = 16 // distance to the peak-push ring
-    private let maxPush: CGFloat = 1.3
-
-    @State private var hover: CGPoint?
     @State private var hoveredIndex: Int?
     @State private var showTooltip = false
 
@@ -43,7 +38,7 @@ struct ActivityGraph: View {
                 ForEach(0..<columns, id: \.self) { c in
                     VStack(spacing: gap) {
                         ForEach(0..<7, id: \.self) { r in
-                            squircle(day: cols[c][r], col: c, row: r, peak: peak)
+                            squircle(day: cols[c][r], peak: peak)
                         }
                     }
                 }
@@ -51,11 +46,9 @@ struct ActivityGraph: View {
             .onContinuousHover { phase in
                 switch phase {
                 case .active(let location):
-                    hover = location
                     let idx = cellIndex(at: location)
                     if idx != hoveredIndex { hoveredIndex = idx }
                 case .ended:
-                    hover = nil
                     hoveredIndex = nil
                 }
             }
@@ -177,15 +170,12 @@ struct ActivityGraph: View {
         return f
     }()
 
-    private func squircle(day: Date?, col: Int, row: Int, peak: Int) -> some View {
+    private func squircle(day: Date?, peak: Int) -> some View {
         let count = day.map { completions[TodoStore.dayKey($0)]?.count ?? 0 } ?? 0
         let lvl = day == nil ? -1 : level(count, peak: peak)
-        let push = displacement(col: col, row: row)
         return RoundedRectangle(cornerRadius: cell * 0.28, style: .continuous)
             .fill(color(for: lvl))
             .frame(width: cell, height: cell)
-            .offset(x: push.width, y: push.height)
-            .animation(trackingAnimation, value: hover)
             .contentShape(Rectangle())
             .onTapGesture {
                 guard let day, count > 0 else { return }
@@ -196,35 +186,6 @@ struct ActivityGraph: View {
     private func sameDay(_ a: Date?, _ b: Date?) -> Bool {
         guard let a, let b else { return false }
         return cal.isDate(a, inSameDayAs: b)
-    }
-
-    /// Track the cursor with a fast interactive spring (minimal lag), then
-    /// settle softly when the pointer leaves.
-    private var trackingAnimation: Animation {
-        hover == nil
-            ? .spring(response: 0.4, dampingFraction: 0.72)
-            : .interactiveSpring(response: 0.15, dampingFraction: 0.9, blendDuration: 0.08)
-    }
-
-    /// Push a cell away from the cursor along a smooth blooming-ring field:
-    /// displacement rises to a peak in a ring at `pushSpread` and tapers off both
-    /// outward (no hard edge) and inward (→0 under the cursor, so no direction flip).
-    private func displacement(col: Int, row: Int) -> CGSize {
-        guard let hover else { return .zero }
-        let center = CGPoint(
-            x: CGFloat(col) * (cell + gap) + cell / 2,
-            y: CGFloat(row) * (cell + gap) + cell / 2
-        )
-        let dx = center.x - hover.x
-        let dy = center.y - hover.y
-        let distance = sqrt(dx * dx + dy * dy)
-        guard distance > 0.001 else { return .zero }
-
-        // Normalized Gaussian bump: r·e^(−r²/2), peak 1 at r = 1 (distance == pushSpread).
-        let r = distance / pushSpread
-        let bump = (r * exp(-r * r / 2)) / 0.606_530_66
-        let magnitude = maxPush * bump
-        return CGSize(width: dx / distance * magnitude, height: dy / distance * magnitude)
     }
 
     // MARK: - Dates
