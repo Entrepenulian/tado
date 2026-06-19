@@ -52,9 +52,29 @@ struct ActivityGraph: View {
                 case .ended: hover = nil
                 }
             }
+
+            legend
         }
         .padding(12)
         .liquidGlass(cornerRadius: 16)
+    }
+
+    private var legend: some View {
+        HStack(spacing: 4) {
+            Spacer()
+            Image(systemName: "minus")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.tertiary)
+            ForEach(0...4, id: \.self) { lvl in
+                RoundedRectangle(cornerRadius: 2.8, style: .continuous)
+                    .fill(color(for: lvl))
+                    .frame(width: 10, height: 10)
+            }
+            Image(systemName: "plus")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.top, 2)
     }
 
     // MARK: - Month labels
