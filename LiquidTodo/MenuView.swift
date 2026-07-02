@@ -6,36 +6,52 @@ struct MenuView: View {
     @State private var dropTargetID: UUID?
     @State private var checking: Set<UUID> = []
     @State private var selectedDay: Date?
+    @State private var page: Page = .tasks
+    @State private var menuOpen = false
+    @State private var menuHover: Page?
+    @State private var headerHovering = false
 
     // #FF6A1A
     private let accent = Color(red: 1.0, green: 0.4157, blue: 0.1020)
 
     var body: some View {
         mainColumn
+            .overlay(alignment: .topLeading) {
+                if menuOpen { menuOverlay }
+            }
             .padding(14)
             .frame(width: 320)
             .tint(accent)
             .background(WindowTopAnchor())
             .onAppear { store.refreshRecurring() }
-            .onDisappear { selectedDay = nil }
+            .onDisappear { selectedDay = nil; menuOpen = false }
     }
 
     private var mainColumn: some View {
         VStack(spacing: 12) {
             header
-            Composer()
-            content
-            if !store.completed.isEmpty { completedSection }
-            footer
-            activitySection
-            if let day = selectedDay {
-                DayDetailSection(
-                    date: day,
-                    titles: store.completions[TodoStore.dayKey(day)] ?? [],
-                    onClose: { withAnimation(.smooth(duration: 0.28)) { selectedDay = nil } }
-                )
-                .transition(.opacity)
+            if page == .tasks {
+                tasksContent
+            } else {
+                IdeasView()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var tasksContent: some View {
+        Composer()
+        content
+        if !store.completed.isEmpty { completedSection }
+        footer
+        activitySection
+        if let day = selectedDay {
+            DayDetailSection(
+                date: day,
+                titles: store.completions[TodoStore.dayKey(day)] ?? [],
+                onClose: { withAnimation(.smooth(duration: 0.28)) { selectedDay = nil } }
+            )
+            .transition(.opacity)
         }
     }
 
@@ -45,20 +61,99 @@ struct MenuView: View {
         ActivityGraph(completions: store.completions, accent: accent, selectedDay: $selectedDay)
     }
 
-    // MARK: - Header
+    // MARK: - Header (page switcher)
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text("Tasks")
-                .font(.system(size: 16, weight: .semibold, design: .rounded))
+            Button {
+                withAnimation(.smooth(duration: 0.22)) { menuOpen.toggle() }
+            } label: {
+                HStack(spacing: 5) {
+                    Text(page.title)
+                        .font(.system(size: 16, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.primary)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .opacity(headerHovering || menuOpen ? 1 : 0)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                withAnimation(.easeOut(duration: 0.15)) { headerHovering = hovering }
+            }
+
             Spacer()
-            Text("\(store.remainingCount)")
+
+            Text("\(page == .tasks ? store.remainingCount : store.ideas.count)")
                 .font(.system(size: 13, weight: .medium, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
                 .contentTransition(.numericText())
         }
         .padding(.horizontal, 2)
+    }
+
+    // MARK: - Custom page dropdown
+
+    private var menuOverlay: some View {
+        Color.black.opacity(0.001)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .onTapGesture { withAnimation(.smooth(duration: 0.18)) { menuOpen = false } }
+            .overlay(alignment: .topLeading) {
+                pageDropdown
+                    .offset(x: 0, y: 30)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .topLeading)))
+            }
+    }
+
+    private var pageDropdown: some View {
+        VStack(spacing: 2) {
+            ForEach(Page.allCases) { p in
+                Button {
+                    select(p)
+                } label: {
+                    HStack(spacing: 9) {
+                        Image(systemName: p.icon)
+                            .font(.system(size: 12, weight: .medium))
+                            .frame(width: 16)
+                        Text(p.title)
+                            .font(.system(size: 13, weight: .medium))
+                        Spacer()
+                        if p == page {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .contentShape(Rectangle())
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(.primary.opacity(menuHover == p ? 0.08 : 0))
+                    )
+                }
+                .buttonStyle(.plain)
+                .onHover { h in menuHover = h ? p : (menuHover == p ? nil : menuHover) }
+            }
+        }
+        .padding(4)
+        .frame(width: 172)
+        .liquidGlass(cornerRadius: 14)
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.2), radius: 10, y: 4)
+    }
+
+    private func select(_ p: Page) {
+        withAnimation(.smooth(duration: 0.26)) {
+            page = p
+            menuOpen = false
+            if p != .tasks { selectedDay = nil }
+        }
     }
 
     // MARK: - List

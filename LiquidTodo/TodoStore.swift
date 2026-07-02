@@ -13,8 +13,14 @@ final class TodoStore: ObservableObject {
         didSet { saveCompletions() }
     }
 
+    /// Captured ideas (Ideas page). Newest first.
+    @Published private(set) var ideas: [Idea] = [] {
+        didSet { saveIdeas() }
+    }
+
     private let key = "liquidtodo.items.v1"
     private let completionsKey = "liquidtodo.completions.v1"
+    private let ideasKey = "liquidtodo.ideas.v1"
     private var resetTimer: Timer?
 
     private static let dayFormatter: DateFormatter = {
@@ -29,6 +35,7 @@ final class TodoStore: ObservableObject {
     init() {
         load()
         loadCompletions()
+        loadIdeas()
         refreshRecurring()
         resetTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshRecurring() }
@@ -133,6 +140,34 @@ final class TodoStore: ObservableObject {
 
     func clearCompleted() {
         items.removeAll { $0.isDone && $0.recurrence == nil }
+    }
+
+    // MARK: - Ideas
+
+    func addIdea(_ text: String, tags: [String]) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let cleanTags = tags
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        ideas.insert(Idea(text: trimmed, tags: cleanTags), at: 0)
+    }
+
+    func deleteIdea(_ id: UUID) {
+        ideas.removeAll { $0.id == id }
+    }
+
+    private func saveIdeas() {
+        guard let data = try? JSONEncoder().encode(ideas) else { return }
+        UserDefaults.standard.set(data, forKey: ideasKey)
+    }
+
+    private func loadIdeas() {
+        guard
+            let data = UserDefaults.standard.data(forKey: ideasKey),
+            let decoded = try? JSONDecoder().decode([Idea].self, from: data)
+        else { return }
+        ideas = decoded
     }
 
     private func save() {
