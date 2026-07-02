@@ -31,7 +31,7 @@ struct IdeasView: View {
             TextField("Capture an idea…", text: $draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
-                .lineLimit(1...4)
+                .lineLimit(1...10)
                 .focused($ideaFocused)
                 .onAppear {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { ideaFocused = true }
