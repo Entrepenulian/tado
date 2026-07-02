@@ -8,6 +8,7 @@ struct IdeasView: View {
     @State private var tagDraft = ""
     @State private var pendingTags: [String] = []
     @State private var editorHeight: CGFloat = 20
+    @State private var editingIdeaID: UUID?
 
     private let maxEditorHeight: CGFloat = 180 // ~10 lines
 
@@ -16,6 +17,26 @@ struct IdeasView: View {
     }
 
     var body: some View {
+        Group {
+            if let id = editingIdeaID, let idea = store.ideas.first(where: { $0.id == id }) {
+                IdeaDetailView(
+                    idea: idea,
+                    onBack: { withAnimation(.smooth(duration: 0.25)) { editingIdeaID = nil } },
+                    onDelete: {
+                        store.deleteIdea(id)
+                        withAnimation(.smooth(duration: 0.25)) { editingIdeaID = nil }
+                    },
+                    onSave: { store.updateIdea($0) }
+                )
+                .transition(.opacity)
+            } else {
+                listAndComposer
+                    .transition(.opacity)
+            }
+        }
+    }
+
+    private var listAndComposer: some View {
         VStack(spacing: 12) {
             composer
             if store.ideas.isEmpty {
@@ -103,7 +124,7 @@ struct IdeasView: View {
         VStack(spacing: 2) {
             ForEach(store.ideas) { idea in
                 IdeaRow(idea: idea) {
-                    withAnimation(.smooth(duration: 0.25)) { store.deleteIdea(idea.id) }
+                    withAnimation(.smooth(duration: 0.25)) { editingIdeaID = idea.id }
                 }
             }
         }
@@ -185,7 +206,7 @@ struct TagChip: View {
 
 struct IdeaRow: View {
     let idea: Idea
-    let onDelete: () -> Void
+    let onOpen: () -> Void
     @State private var hovering = false
 
     private static let relativeFormatter: RelativeDateTimeFormatter = {
@@ -195,42 +216,41 @@ struct IdeaRow: View {
     }()
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        Button(action: onOpen) {
             HStack(alignment: .top, spacing: 8) {
-                Text(idea.text)
-                    .font(.system(size: 13))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if hovering {
-                    Button(action: onDelete) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.secondary)
-                            .frame(width: 20, height: 20)
-                            .contentShape(Rectangle())
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(idea.text)
+                        .font(.system(size: 13))
+                        .lineLimit(2)
+                        .truncationMode(.tail)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    if !idea.tags.isEmpty {
+                        FlowLayout(spacing: 5) {
+                            ForEach(idea.tags, id: \.self) { TagChip(tag: $0) }
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .transition(.opacity.combined(with: .scale(scale: 0.6)))
-                }
-            }
 
-            if !idea.tags.isEmpty {
-                FlowLayout(spacing: 5) {
-                    ForEach(idea.tags, id: \.self) { TagChip(tag: $0) }
+                    Text(Self.relativeFormatter.localizedString(for: idea.createdAt, relativeTo: Date()))
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
                 }
-            }
 
-            Text(Self.relativeFormatter.localizedString(for: idea.createdAt, relativeTo: Date()))
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 1)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(.primary.opacity(hovering ? 0.06 : 0))
+            )
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(.primary.opacity(hovering ? 0.05 : 0))
-        )
-        .contentShape(Rectangle())
+        .buttonStyle(.plain)
         .onHover { h in withAnimation(.easeOut(duration: 0.15)) { hovering = h } }
     }
 }

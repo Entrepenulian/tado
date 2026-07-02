@@ -157,6 +157,11 @@ final class TodoStore: ObservableObject {
         ideas.removeAll { $0.id == id }
     }
 
+    func updateIdea(_ updated: Idea) {
+        guard let i = ideas.firstIndex(where: { $0.id == updated.id }) else { return }
+        ideas[i] = updated
+    }
+
     private func saveIdeas() {
         guard let data = try? JSONEncoder().encode(ideas) else { return }
         UserDefaults.standard.set(data, forKey: ideasKey)
