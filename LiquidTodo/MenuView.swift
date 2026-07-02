@@ -16,6 +16,7 @@ struct MenuView: View {
 
     var body: some View {
         mainColumn
+            .blur(radius: menuOpen ? 3.5 : 0)
             .overlay(alignment: .topLeading) {
                 if menuOpen { menuOverlay }
             }
@@ -98,7 +99,7 @@ struct MenuView: View {
     // MARK: - Custom page dropdown
 
     private var menuOverlay: some View {
-        Color.black.opacity(0.001)
+        Color.black.opacity(0.2)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contentShape(Rectangle())
             .onTapGesture { withAnimation(.smooth(duration: 0.18)) { menuOpen = false } }
