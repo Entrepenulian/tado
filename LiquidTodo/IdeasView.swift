@@ -7,7 +7,11 @@ struct IdeasView: View {
     @State private var draft = ""
     @State private var tagDraft = ""
     @State private var pendingTags: [String] = []
+    @State private var editorHeight: CGFloat = 22
     @FocusState private var ideaFocused: Bool
+
+    private let editorFont = Font.system(size: 13)
+    private let maxEditorHeight: CGFloat = 180 // ~10 lines
 
     private var canAdd: Bool {
         !draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -28,14 +32,7 @@ struct IdeasView: View {
 
     private var composer: some View {
         VStack(alignment: .leading, spacing: 10) {
-            TextField("Capture an idea…", text: $draft, axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.system(size: 13))
-                .lineLimit(1...10)
-                .focused($ideaFocused)
-                .onAppear {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { ideaFocused = true }
-                }
+            ideaEditor
 
             Divider().opacity(0.35)
 
@@ -77,6 +74,44 @@ struct IdeasView: View {
         }
         .padding(12)
         .liquidGlass(cornerRadius: 16)
+    }
+
+    // A TextEditor that grows with its content (wrapping + newlines) up to
+    // ~10 lines, then scrolls. Sized from a hidden mirror of the text.
+    private var ideaEditor: some View {
+        ZStack(alignment: .topLeading) {
+            Text(draft.isEmpty ? " " : draft)
+                .font(editorFont)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 6)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: EditorHeightKey.self, value: proxy.size.height)
+                    }
+                )
+                .hidden()
+
+            if draft.isEmpty {
+                Text("Capture an idea…")
+                    .font(editorFont)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 6)
+                    .allowsHitTesting(false)
+            }
+
+            TextEditor(text: $draft)
+                .font(editorFont)
+                .scrollContentBackground(.hidden)
+                .focused($ideaFocused)
+                .frame(height: min(max(editorHeight, 22), maxEditorHeight))
+        }
+        .onPreferenceChange(EditorHeightKey.self) { editorHeight = $0 }
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { ideaFocused = true }
+        }
     }
 
     // MARK: - List
@@ -214,5 +249,12 @@ struct IdeaRow: View {
         )
         .contentShape(Rectangle())
         .onHover { h in withAnimation(.easeOut(duration: 0.15)) { hovering = h } }
+    }
+}
+
+private struct EditorHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 22
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
